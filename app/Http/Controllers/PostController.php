@@ -81,4 +81,54 @@ public function destroy(string $id): RedirectResponse
         ->route('posts.index')
         ->with('success', 'Data berhasil dihapus!');
 }
+
+/**
+ * Form edit postingan
+ */
+public function edit(string $id): View
+{
+    // ambil data berdasarkan id
+    $post = Post::findOrFail($id);
+
+    return view('posts.edit', compact('post'));
+}
+
+/**
+ * Update postingan
+ */
+public function update(Request $request, string $id): RedirectResponse
+{
+    $request->validate([
+        'title'   => 'required|min:5',
+        'content' => 'required|min:10',
+        'image'   => 'nullable|image|mimes:jpeg,jpg,png|max:2048'
+    ]);
+
+    $post = Post::findOrFail($id);
+
+    // kalau ada gambar baru
+    if ($request->hasFile('image')) {
+        // hapus gambar lama
+        if ($post->image && \Storage::exists('public/posts/' . $post->image)) {
+            \Storage::delete('public/posts/' . $post->image);
+        }
+
+        // simpan gambar baru
+        $image = $request->file('image');
+        $image->storeAs('public/posts', $image->hashName());
+
+        // update gambar di database
+        $post->image = $image->hashName();
+    }
+
+    // update data lain
+    $post->title   = $request->input('title');
+    $post->content = $request->input('content');
+    $post->save();
+
+    return redirect()
+        ->route('posts.index')
+        ->with('success', 'Data berhasil diupdate!');
+}
+
 }
